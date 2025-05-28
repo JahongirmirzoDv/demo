@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-group = "com.example"
+group = "uz.mobiledv"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -40,6 +40,23 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "demo"
             packageVersion = "1.0.0"
+            description = "Hujjatlarni avtomatik to'ldirish dasturi"
+            copyright = "© 2025 MobileDv"
+            vendor = "MobileDv"
+
+            macOS {
+                bundleID = "uz.mobiledv.hujjattuldiruvchi" // Replace with your actual bundle ID
+                iconFile.set(project.file("src/main/resources/icons/mac_icon.icns")) // Or your chosen path
+                // You might also need to set:
+                // dockName = "Hujjat To'ldiruvchi"
+            }
+
+            // For Windows (.msi)
+            windows {
+                // menuGroup = "My Application Suite" // Optional
+                // shortcut = true // Optional
+                iconFile.set(project.file("src/main/resources/icons/win_icon.ico")) // Or your chosen path
+            }
         }
     }
 }
