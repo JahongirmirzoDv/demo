@@ -346,51 +346,31 @@ fun App() {
 
     var templateFolderPath by remember { mutableStateOf(loadStringPreference(KEY_TEMPLATE_FOLDER)) }
     var outputFolderPath by remember { mutableStateOf(loadStringPreference(KEY_OUTPUT_FOLDER)) }
-
     var globalStyleIsBold by remember { mutableStateOf(loadBooleanPreference(KEY_GLOBAL_BOLD)) }
     var globalStyleIsItalic by remember { mutableStateOf(loadBooleanPreference(KEY_GLOBAL_ITALIC)) }
     var globalStyleFontFamily by remember { mutableStateOf(loadStringPreference(KEY_GLOBAL_FONT_FAMILY)) }
 
-    // State for font dropdown
-    var fontDropdownExpanded by remember { mutableStateOf(false) }
-    val systemFontFamilies = remember {
-        try {
-            GraphicsEnvironment.getLocalGraphicsEnvironment().availableFontFamilyNames.toList()
-        } catch (e: Exception) {
-            println("Error getting system fonts: ${e.message}. Using fallback list.")
-            // Provide a basic fallback list if system fonts can't be loaded
-            listOf(
-                "Arial",
-                "Calibri",
-                "Times New Roman",
-                "Courier New",
-                "Verdana",
-                "Georgia",
-                "Impact",
-                "Comic Sans MS"
-            )
-        }
-    }
-
     var documentPreviewText by remember { mutableStateOf("Hujjat oldindan ko'rish uchun shu yerda paydo bo'ladi.\n\nAvval manba va chiqish papkalarini tanlang, so'ng ma'lumotlarni to'ldirib, \"Hujjatlarni To'ldirish\" tugmasini bosing.") }
-    var lastProcessedFileName by remember { mutableStateOf<String?>(null) }
+    var lastProcessedFileName by remember { mutableStateOf<String?>(null) } // This will store just the name of the file for preview title
 
+    // ... (previewScale, A4 dimensions, etc. remain the same) ...
     var previewScale by remember { mutableStateOf(1f) }
     val minScale = 0.3f
     val maxScale = 3.0f
     val scaleIncrement = 0.1f
-
     val a4AspectRatio = 1.414f
     val previewBaseWidth = 350.dp
     val previewBaseHeight = previewBaseWidth * a4AspectRatio
     val previewTextBaseFontSize = 10.sp
 
+
     MaterialTheme {
         Row(modifier = Modifier.fillMaxSize()) {
-            Column( // Left Pane
+            Column( // Left Pane (UI for folder pickers, global styles, form fields remains the same)
                 modifier = Modifier.weight(1f).fillMaxHeight().padding(16.dp).verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // ... (All UI elements from Text("Hujjat Ma'lumotlari") down to and including the form's OutlinedTextFields)
                 Text("Hujjat Ma'lumotlari", style = MaterialTheme.typography.h5)
                 FolderPickerButton("Manba papkasi", templateFolderPath) {
                     templateFolderPath = it; saveStringPreference(KEY_TEMPLATE_FOLDER, it)
@@ -400,7 +380,7 @@ fun App() {
                 }
                 Divider(Modifier.padding(vertical = 8.dp))
 
-                Text("Font style", style = MaterialTheme.typography.subtitle1)
+                Text("Global Style for Inserted Text", style = MaterialTheme.typography.subtitle1)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -415,20 +395,28 @@ fun App() {
                         checked = globalStyleIsItalic,
                         onCheckedChange = { globalStyleIsItalic = it; saveBooleanPreference(KEY_GLOBAL_ITALIC, it) })
                 }
-
-                // Font Family Dropdown
+                // Font Family Dropdown (as implemented in v3.11)
+                var fontDropdownExpanded by remember { mutableStateOf(false) }
+                val systemFontFamilies = remember {
+                    try {
+                        GraphicsEnvironment.getLocalGraphicsEnvironment().availableFontFamilyNames.toList()
+                    } catch (e: Exception) {
+                        println("Error getting system fonts: ${e.message}. Using fallback list.")
+                        listOf("Arial", "Calibri", "Times New Roman", "Courier New", "Verdana", "Georgia") // Fallback
+                    }
+                }
                 ExposedDropdownMenuBox(
                     expanded = fontDropdownExpanded,
                     onExpandedChange = { fontDropdownExpanded = !fontDropdownExpanded },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp) // Added some top padding
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 ) {
                     OutlinedTextField(
-                        value = globalStyleFontFamily.ifEmpty { "Font Family" }, // Display current or placeholder
-                        onValueChange = { /* This TextField is read-only for selection purposes */ },
+                        value = globalStyleFontFamily.ifEmpty { "Select Font Family" },
+                        onValueChange = { },
                         label = { Text("Font Family") },
-                        readOnly = true, // Important: selection is via dropdown
+                        readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fontDropdownExpanded) },
-                        modifier = Modifier.fillMaxWidth() // This modifier is for the TextField itself within the Box
+                        modifier = Modifier.fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = fontDropdownExpanded,
@@ -436,118 +424,116 @@ fun App() {
                     ) {
                         if (systemFontFamilies.isNotEmpty()) {
                             systemFontFamilies.forEach { selectionOption ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        globalStyleFontFamily = selectionOption
-                                        saveStringPreference(KEY_GLOBAL_FONT_FAMILY, selectionOption)
-                                        fontDropdownExpanded = false
-                                    }
-                                ) {
-                                    Text(text = selectionOption)
-                                }
+                                DropdownMenuItem(onClick = {
+                                    globalStyleFontFamily = selectionOption
+                                    saveStringPreference(KEY_GLOBAL_FONT_FAMILY, selectionOption)
+                                    fontDropdownExpanded = false
+                                }) { Text(text = selectionOption) }
                             }
                         } else {
-                            DropdownMenuItem(onClick = {}, enabled = false) {
-                                Text("No system fonts found")
-                            }
+                            DropdownMenuItem(onClick = {}, enabled = false) { Text("No system fonts found") }
                         }
                     }
                 }
                 Divider(Modifier.padding(vertical = 8.dp))
 
-                // Input Fields (OutlinedTextFields for formData remain the same)
+                // Form Input Fields (objectName, objectDesc, etc.)
                 OutlinedTextField(
                     formData.objectName,
                     { formData = formData.copy(objectName = it) },
-                    label = { Text("Nomi (наименование работ)") },
+                    label = { Text("Nomi") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.objectDesc,
                     { formData = formData.copy(objectDesc = it) },
-                    label = { Text("Tavsifi (наименование и место расположения объекта)") },
+                    label = { Text("Tavsifi (объект)") },
                     modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 80.dp),
                     singleLine = false
                 )
                 OutlinedTextField(
                     formData.subContractor,
                     { formData = formData.copy(subContractor = it) },
-                    label = { Text("представителя субподрядчика (должность)") },
+                    label = { Text("Subpudratchi (lavozimi)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.subContractorName,
                     { formData = formData.copy(subContractorName = it) },
-                    label = { Text("представителя субподрядчика (F.I.O)") },
+                    label = { Text("Subpudratchi (F.I.O)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.contractor,
                     { formData = formData.copy(contractor = it) },
-                    label = { Text("представителя подрядчика (должность)") },
+                    label = { Text("Pudratchi (lavozimi)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.contractorName,
                     { formData = formData.copy(contractorName = it) },
-                    label = { Text("представителя подрядчика (F.I.O)") },
+                    label = { Text("Pudratchi (F.I.O)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.customer,
                     { formData = formData.copy(customer = it) },
-                    label = { Text("Представитель Заказчика  (должность)") },
+                    label = { Text("Buyurtmachi (lavozimi)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.customerName,
                     { formData = formData.copy(customerName = it) },
-                    label = { Text("Представитель Заказчика (F.I.O)") },
+                    label = { Text("Buyurtmachi (F.I.O)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.designOrg,
                     { formData = formData.copy(designOrg = it) },
-                    label = { Text("представителя проектной организации (должность)") },
+                    label = { Text("Loyiha tashkiloti (lavozimi)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.designOrgName,
                     { formData = formData.copy(designOrgName = it) },
-                    label = { Text("представителя проектной организации (F.I.O)") },
+                    label = { Text("Loyiha tashkiloti (F.I.O)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     formData.certification,
                     { formData = formData.copy(certification = it) },
-                    label = { Text("наименование скрытых работ") },
+                    label = { Text("Yashirin ishlar nomi") },
                     modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 80.dp),
                     singleLine = false
                 )
 
-
                 Spacer(Modifier.height(12.dp))
-                Button( // Process Button (logic remains the same)
+                Button(
                     onClick = {
                         if (templateFolderPath.isBlank() || outputFolderPath.isBlank()) {
                             resultMessage = "Iltimos, manba va chiqish papkalarini tanlang."
                             return@Button
                         }
-                        isProcessing = true; resultMessage = "Qayta ishlanmoqda..."; documentPreviewText =
-                        "Hujjatlar qayta ishlanmoqda..."; lastProcessedFileName = null
+                        isProcessing = true
+                        resultMessage = "Qayta ishlanmoqda..."
+                        documentPreviewText = "Hujjatlar qayta ishlanmoqda..."
+                        var tempLastProcessedFileName: String? = null // Use a temporary var
+
                         coroutineScope.launch(Dispatchers.IO) {
+                            // ... (dataMap, rootTemplateDir, rootOutputDir, currentMsg, etc. initialization remains the same) ...
                             val dataMap = mapOf(
                                 TemplateKeys.OBJECT_NAME to formData.objectName,
                                 TemplateKeys.OBJECT_DESC to formData.objectDesc,
+                                // ... other dataMap entries
                                 TemplateKeys.SUB_CONTRACTOR to formData.subContractor,
                                 TemplateKeys.SUB_CONTRACTOR_NAME to formData.subContractorName,
                                 TemplateKeys.CONTRACTOR to formData.contractor,
@@ -558,56 +544,108 @@ fun App() {
                                 TemplateKeys.DESIGN_ORG_NAME to formData.designOrgName,
                                 TemplateKeys.CERTIFICATION to formData.certification
                             )
+                            val rootTemplateDir = File(templateFolderPath)
+                            val rootOutputDir = File(outputFolderPath)
                             var currentMsg = ""
-                            var firstSuccessPath: String? = null
+                            var firstSuccessPathForPreview: String? = null
+                            val processedFileNamesList = mutableListOf<String>()
+                            val errorFileMessagesList = mutableListOf<String>()
+                            var filesProcessedCount = 0
+
+                            // Recursive function to process directories (remains the same)
+                            fun processDirectory(currentTemplateDir: File) {
+                                currentTemplateDir.listFiles()?.forEach { entry ->
+                                    if (entry.isDirectory) {
+                                        processDirectory(entry) // Recursive call
+                                    } else if (entry.isFile && entry.extension.equals("docx", ignoreCase = true)) {
+                                        try {
+                                            val relativePath = entry.toRelativeString(rootTemplateDir)
+                                            val relativeParent = File(relativePath).parent
+
+                                            val outputDirWithSubfolders = if (relativeParent != null) {
+                                                File(rootOutputDir, relativeParent)
+                                            } else {
+                                                rootOutputDir
+                                            }
+                                            outputDirWithSubfolders.mkdirs()
+
+                                            val outputFileName = "${entry.name}"
+                                            val finalOutputFile = File(outputDirWithSubfolders, outputFileName)
+
+                                            fillTemplate(
+                                                entry.absolutePath,
+                                                finalOutputFile.absolutePath,
+                                                dataMap,
+                                                globalStyleIsBold,
+                                                globalStyleIsItalic,
+                                                globalStyleFontFamily.ifBlank { null }
+                                            )
+                                            processedFileNamesList.add(relativePath)
+                                            if (firstSuccessPathForPreview == null) {
+                                                firstSuccessPathForPreview = finalOutputFile.absolutePath
+                                                tempLastProcessedFileName = finalOutputFile.name // Update temp var
+                                            }
+                                            filesProcessedCount++
+                                        } catch (e: Exception) {
+                                            val errorLocation =
+                                                if (entry.parentFile != rootTemplateDir) entry.parentFile.toRelativeString(
+                                                    rootTemplateDir
+                                                ) else "root"
+                                            errorFileMessagesList.add("${entry.name} (in '$errorLocation'): ${e.message}")
+                                            e.printStackTrace()
+                                        }
+                                    }
+                                }
+                            }
+
                             try {
-                                val tDir = File(templateFolderPath)
-                                val oDir = File(outputFolderPath)
-                                if (!tDir.exists() || !tDir.isDirectory) currentMsg =
-                                    "Xatolik: Manba papkasi topilmadi."
-                                else if (!oDir.exists()) oDir.mkdirs()
-                                else if (!oDir.isDirectory) currentMsg = "Xatolik: Chiqish joyi papka emas."
+                                // ... (folder existence checks remain the same) ...
+                                if (!rootTemplateDir.exists() || !rootTemplateDir.isDirectory) {
+                                    currentMsg = "Xatolik: Manba papkasi topilmadi."
+                                } else if (!rootOutputDir.exists() && !rootOutputDir.mkdirs()) {
+                                    currentMsg = "Xatolik: Chiqish papkasini yaratib bo'lmadi."
+                                } else if (!rootOutputDir.isDirectory) {
+                                    currentMsg = "Xatolik: Chiqish joyi papka emas."
+                                }
 
                                 if (currentMsg.isEmpty()) {
-                                    var count = 0
-                                    val processed = mutableListOf<String>()
-                                    val errors = mutableListOf<String>()
-                                    tDir.listFiles()?.filter { it.isFile && it.extension.equals("docx", true) }
-                                        ?.forEach { file ->
-                                            val outFile = File(oDir, "filled_${file.name}")
-                                            try {
-                                                fillTemplate(
-                                                    file.absolutePath,
-                                                    outFile.absolutePath,
-                                                    dataMap,
-                                                    globalStyleIsBold,
-                                                    globalStyleIsItalic,
-                                                    globalStyleFontFamily.ifBlank { null })
-                                                processed.add(file.name); if (firstSuccessPath == null) {
-                                                    firstSuccessPath = outFile.absolutePath; lastProcessedFileName =
-                                                        outFile.name
-                                                }; count++
-                                            } catch (e: Exception) {
-                                                errors.add("${file.name} (${e.message})"); e.printStackTrace()
-                                            }
-                                        }
-                                    currentMsg =
-                                        if (count > 0) "$count ta hujjat to'ldirildi: ${processed.joinToString()}." else "Manba papkasida DOCX fayllar topilmadi."
-                                    if (errors.isNotEmpty()) currentMsg += "\nXatoliklar: ${errors.joinToString()}"
-                                    firstSuccessPath?.let { documentPreviewText = extractTextFromDocx(it) } ?: run {
-                                        documentPreviewText =
-                                            if (count == 0 && errors.isEmpty()) "Manba papkasida DOCX fayllar topilmadi."
-                                            else if (errors.isNotEmpty() && count == 0) "Hujjatlarni qayta ishlashda xatolik." else "Oldindan ko'rish uchun hujjat yaratilmadi."
+                                    processDirectory(rootTemplateDir) // Start recursive processing
+
+                                    currentMsg = if (filesProcessedCount > 0) {
+                                        "$filesProcessedCount ta hujjat to'ldirildi."
+                                    } else {
+                                        "Manba papkasida DOCX fayllar topilmadi."
+                                    }
+                                    if (errorFileMessagesList.isNotEmpty()) {
+                                        currentMsg += "\nXatoliklar:\n - ${errorFileMessagesList.joinToString("\n - ")}"
                                     }
                                 }
                             } catch (e: Exception) {
-                                currentMsg = "Umumiy xatolik: ${e.message}"; documentPreviewText =
-                                    "Xatolik: ${e.message}"; e.printStackTrace()
+                                currentMsg = "Umumiy xatolik: ${e.message}"; e.printStackTrace()
                             } finally {
-                                resultMessage = currentMsg; isProcessing = false
+                                // MODIFICATION HERE: Removed launch(Dispatchers.Main)
+                                // Update UI states directly. Compose handles main thread scheduling for recomposition.
+                                resultMessage = currentMsg
+                                isProcessing = false
+                                lastProcessedFileName =
+                                    tempLastProcessedFileName // Update actual state for preview title
+
+                                if (firstSuccessPathForPreview != null) {
+                                    documentPreviewText = extractTextFromDocx(firstSuccessPathForPreview!!)
+                                } else {
+                                    documentPreviewText =
+                                        if (filesProcessedCount == 0 && errorFileMessagesList.isEmpty()) {
+                                            "Manba papkasida DOCX fayllar topilmadi."
+                                        } else if (errorFileMessagesList.isNotEmpty() && filesProcessedCount == 0) {
+                                            "Hujjatlarni qayta ishlashda xatolik yuz berdi."
+                                        } else {
+                                            "Oldindan ko'rish uchun hujjat yaratilmadi."
+                                        }
+                                }
                             }
                         }
                     },
+                    // ... (Button enabled state and content remains the same)
                     enabled = !isProcessing, modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
                     if (isProcessing) {
@@ -617,9 +655,11 @@ fun App() {
                     } else Text("Hujjatlarni To'ldirish")
                 }
                 if (resultMessage.isNotEmpty()) Text(resultMessage, Modifier.padding(top = 12.dp))
-            }
+            } // End of Left Pane Column
+
             Divider(Modifier.fillMaxHeight().width(1.dp).padding(vertical = 16.dp))
 
+            // Right Pane - Preview Area (remains the same as v3.10)
             Column(
                 Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colors.onSurface.copy(alpha = 0.05f))
                     .padding(16.dp),
