@@ -1,45 +1,77 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+// import androidx.compose.foundation.border // Not used directly in the latest version, Surface has border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FolderOpen // Ensure compose.materialIconsCore is in build.gradle.kts
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-// Removed AnnotatedString specific imports as we are reverting to plain text preview
-// import androidx.compose.ui.text.AnnotatedString
-// import androidx.compose.ui.text.SpanStyle
-// import androidx.compose.ui.text.buildAnnotatedString
-// import androidx.compose.ui.text.font.FontStyle
-// import androidx.compose.ui.text.font.FontWeight
+// import androidx.compose.ui.text.TextStyle // Not used directly
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.AwtWindow
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor // Re-added for plain text extraction
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor
 import org.apache.poi.xwpf.usermodel.UnderlinePatterns
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.apache.poi.xwpf.usermodel.XWPFRun
-import java.awt.FileDialog
-import java.awt.Frame
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import javax.swing.JFileChooser
+import java.util.prefs.Preferences // Added for saving preferences
 
-// --- StyleProperties Data Class and XWPFRun Extensions (Still needed for fillTemplate) ---
+// --- Preference Keys and Node Path ---
+private const val PREFS_NODE_PATH = "com.example.hujjatoldiruvchi.prefs"
+private const val KEY_TEMPLATE_FOLDER = "templateFolderPath"
+private const val KEY_OUTPUT_FOLDER = "outputFolderPath"
+
+// --- Helper functions to save and load preferences ---
+private fun savePathPreference(key: String, path: String) {
+    try {
+        val prefs = Preferences.userRoot().node(PREFS_NODE_PATH)
+        prefs.put(key, path)
+        prefs.flush() // Ensure changes are written
+    } catch (e: SecurityException) {
+        println("SecurityException while saving preference $key: ${e.message}")
+        // Handle appropriately, e.g., inform user or log
+    } catch (e: Exception) {
+        println("Exception while saving preference $key: ${e.message}")
+    }
+}
+
+private fun loadPathPreference(key: String): String {
+    return try {
+        val prefs = Preferences.userRoot().node(PREFS_NODE_PATH)
+        prefs.get(key, "") // Return empty string if not found
+    } catch (e: SecurityException) {
+        println("SecurityException while loading preference $key: ${e.message}")
+        "" // Return default on error
+    } catch (e: Exception) {
+        println("Exception while loading preference $key: ${e.message}")
+        "" // Return default on error
+    }
+}
+
+
+// --- StyleProperties Data Class and XWPFRun Extensions ---
 data class StyleProperties(
     val isBold: Boolean = false, val isItalic: Boolean = false,
     val underline: UnderlinePatterns = UnderlinePatterns.NONE,
@@ -71,7 +103,7 @@ fun XWPFRun.applyStyle(style: StyleProperties) {
     style.color?.let { this.color = it }
 }
 
-// --- fillTemplate Function (Keep this as it was) ---
+// --- fillTemplate Function ---
 fun fillTemplate(inputPath: String, outputPath: String, data: Map<String, String>) {
     FileInputStream(inputPath).use { fis ->
         val doc = XWPFDocument(fis)
@@ -125,7 +157,7 @@ fun fillTemplate(inputPath: String, outputPath: String, data: Map<String, String
     }
 }
 
-// --- FormData and TemplateKeys (Keep these) ---
+// --- FormData and TemplateKeys ---
 data class FormData(
     val objectName: String = "", val objectDesc: String = "",
     val subContractor: String = "", val subContractorName: String = "",
@@ -149,25 +181,25 @@ object TemplateKeys {
     const val CERTIFICATION = "certification"
 }
 
-// --- REVERTED Function to extract PLAIN text for preview ---
+// --- Function to extract PLAIN text for preview ---
 fun extractTextFromDocx(filePath: String): String {
     return try {
         FileInputStream(filePath).use { fis ->
             XWPFDocument(fis).use { document ->
                 XWPFWordExtractor(document).use { extractor ->
-                    extractor.text ?: "Matn topilmadi (null qaytardi)." // Text from extractor can be null
+                    extractor.text ?: "Matn topilmadi (null qaytardi)."
                 }
             }
         }
     } catch (e: Exception) {
         println("Oldindan ko'rish uchun matn chiqarishda xatolik ($filePath): ${e.message}")
-        e.printStackTrace() // For more detailed debugging
+        e.printStackTrace()
         "Hujjat matnini oldindan ko'rishda xatolik yuz berdi: ${e.message}"
     }
 }
 
 
-// --- FolderPickerButton Composable (Keep the improved version from last response) ---
+// --- FolderPickerButton Composable ---
 @Composable
 fun FolderPickerButton(
     buttonText: String, selectedPath: String,
@@ -190,7 +222,7 @@ fun FolderPickerButton(
             if (result == JFileChooser.APPROVE_OPTION) {
                 chooser.selectedFile?.absolutePath?.let(onPathSelected)
             }
-            isDialogVisible = false // Reset state to prevent re-showing
+            isDialogVisible = false
             onDispose {}
         }
     }
@@ -204,11 +236,20 @@ fun App() {
     var isProcessing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    var templateFolderPath by remember { mutableStateOf("") }
-    var outputFolderPath by remember { mutableStateOf("") }
-    // Reverted to String for plain text preview
+    // Initialize folder paths from preferences
+    var templateFolderPath by remember { mutableStateOf(loadPathPreference(KEY_TEMPLATE_FOLDER)) }
+    var outputFolderPath by remember { mutableStateOf(loadPathPreference(KEY_OUTPUT_FOLDER)) }
+
     var documentPreviewText by remember { mutableStateOf("Hujjat oldindan ko'rish uchun shu yerda paydo bo'ladi.\n\nAvval manba va chiqish papkalarini tanlang, so'ng ma'lumotlarni to'ldirib, \"Hujjatlarni To'ldirish\" tugmasini bosing.") }
     var lastProcessedFileName by remember { mutableStateOf<String?>(null) }
+
+    var previewFontSize by remember { mutableStateOf(14.sp) }
+    var previewFontWeight by remember { mutableStateOf(FontWeight.Normal) }
+    var previewFontStyle by remember { mutableStateOf(FontStyle.Normal) }
+    var previewFontFamily by remember { mutableStateOf(FontFamily.Default) }
+    var fontMenuExpanded by remember { mutableStateOf(false) }
+    val fontFamilies = listOf(FontFamily.Default, FontFamily.Serif, FontFamily.SansSerif, FontFamily.Monospace, FontFamily.Cursive)
+    val fontFamilyNames = listOf("Default", "Serif", "SansSerif", "Monospace", "Cursive")
 
 
     MaterialTheme {
@@ -229,12 +270,26 @@ fun App() {
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                FolderPickerButton("Manba papkasi", templateFolderPath, { templateFolderPath = it })
-                FolderPickerButton("Chiqish papkasi", outputFolderPath, { outputFolderPath = it })
+                FolderPickerButton(
+                    "Manba papkasi",
+                    templateFolderPath,
+                    { newPath ->
+                        templateFolderPath = newPath
+                        savePathPreference(KEY_TEMPLATE_FOLDER, newPath)
+                    }
+                )
+                FolderPickerButton(
+                    "Chiqish papkasi",
+                    outputFolderPath,
+                    { newPath ->
+                        outputFolderPath = newPath
+                        savePathPreference(KEY_OUTPUT_FOLDER, newPath)
+                    }
+                )
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
                 val singleLineModifier = Modifier.fillMaxWidth()
-                val multiLineModifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 70.dp)
+                val multiLineModifier = Modifier.fillMaxWidth()
 
                 OutlinedTextField(
                     formData.objectName,
@@ -247,8 +302,10 @@ fun App() {
                     formData.objectDesc,
                     { formData = formData.copy(objectDesc = it) },
                     label = { Text("Tavsifi (объект)") },
-                    modifier = multiLineModifier
+                    modifier = multiLineModifier,
+                    singleLine = false
                 )
+                // ... (rest of the OutlinedTextFields remain the same)
                 OutlinedTextField(
                     formData.subContractor,
                     { formData = formData.copy(subContractor = it) },
@@ -309,8 +366,10 @@ fun App() {
                     formData.certification,
                     { formData = formData.copy(certification = it) },
                     label = { Text("Yashirin ishlar nomi") },
-                    modifier = multiLineModifier
+                    modifier = multiLineModifier,
+                    singleLine = false
                 )
+
 
                 Spacer(Modifier.height(12.dp))
                 Button(
@@ -346,51 +405,53 @@ fun App() {
                             try {
                                 if (!templateDir.exists() || !templateDir.isDirectory) {
                                     currentResultMessage = "Xatolik: Manba papkasi topilmadi."
-                                    resultMessage = currentResultMessage; isProcessing = false; return@launch
-                                }
-                                if (!outputDir.exists()) outputDir.mkdirs()
-                                else if (!outputDir.isDirectory) {
+                                    // Removed: resultMessage = currentResultMessage; isProcessing = false; return@launch
+                                    // This should be set in finally block or outside
+                                } else if (!outputDir.exists()) {
+                                    outputDir.mkdirs()
+                                } else if (!outputDir.isDirectory) {
                                     currentResultMessage = "Xatolik: Chiqish joyi papka emas."
-                                    resultMessage = currentResultMessage; isProcessing = false; return@launch
+                                    // Removed: resultMessage = currentResultMessage; isProcessing = false; return@launch
                                 }
 
-                                var count = 0;
-                                val processedFiles = mutableListOf<String>();
-                                val errorFiles = mutableListOf<String>()
-                                templateDir.listFiles()?.filter { it.isFile && it.extension.equals("docx", true) }
-                                    ?.forEach { file ->
-                                        val outFile = File(outputDir, "filled_${file.name}")
-                                        try {
-                                            fillTemplate(file.absolutePath, outFile.absolutePath, dataMap)
-                                            processedFiles.add(file.name)
-                                            if (firstSuccessPath == null) {
-                                                firstSuccessPath = outFile.absolutePath
-                                                lastProcessedFileName = outFile.name
+                                if (currentResultMessage.isEmpty()) { // Proceed only if no initial folder errors
+                                    var count = 0;
+                                    val processedFiles = mutableListOf<String>();
+                                    val errorFiles = mutableListOf<String>()
+                                    templateDir.listFiles()?.filter { it.isFile && it.extension.equals("docx", true) }
+                                        ?.forEach { file ->
+                                            val outFile = File(outputDir, "filled_${file.name}")
+                                            try {
+                                                fillTemplate(file.absolutePath, outFile.absolutePath, dataMap)
+                                                processedFiles.add(file.name)
+                                                if (firstSuccessPath == null) {
+                                                    firstSuccessPath = outFile.absolutePath
+                                                    lastProcessedFileName = outFile.name
+                                                }
+                                                count++
+                                            } catch (e: Exception) {
+                                                errorFiles.add("${file.name} (Xato: ${e.message})"); e.printStackTrace()
                                             }
-                                            count++
-                                        } catch (e: Exception) {
-                                            errorFiles.add("${file.name} (Xato: ${e.message})"); e.printStackTrace()
+                                        }
+                                    currentResultMessage =
+                                        if (count > 0) "$count ta hujjat to'ldirildi: ${processedFiles.joinToString()}."
+                                        else "Manba papkasida DOCX fayllar topilmadi."
+                                    if (errorFiles.isNotEmpty()) currentResultMessage += "\nXatoliklar: ${errorFiles.joinToString()}"
+
+                                    firstSuccessPath?.let {
+                                        documentPreviewText = extractTextFromDocx(it)
+                                    } ?: run {
+                                        documentPreviewText = if (count == 0 && errorFiles.isEmpty()) {
+                                            "Manba papkasida DOCX fayllar topilmadi."
+                                        } else if (errorFiles.isNotEmpty() && count == 0) {
+                                            "Hujjatlarni qayta ishlashda xatolik yuz berdi. Xatoliklarni tekshiring."
+                                        } else if (count == 0) { // This case might be covered by the first one
+                                            "Oldindan ko'rish uchun hujjat yaratilmadi."
+                                        } else { // Should ideally not be reached if firstSuccessPath is null and count > 0
+                                            "Oldindan ko'rish uchun fayl tanlanmadi."
                                         }
                                     }
-                                currentResultMessage =
-                                    if (count > 0) "$count ta hujjat to'ldirildi: ${processedFiles.joinToString()}."
-                                    else "Manba papkasida DOCX fayllar topilmadi."
-                                if (errorFiles.isNotEmpty()) currentResultMessage += "\nXatoliklar: ${errorFiles.joinToString()}"
-
-                                // Update preview with plain text
-                                firstSuccessPath?.let {
-                                    documentPreviewText = extractTextFromDocx(it)
-                                } ?: run {
-                                    documentPreviewText = if (count == 0 && errorFiles.isEmpty()) {
-                                        "Manba papkasida DOCX fayllar topilmadi."
-                                    } else if (errorFiles.isNotEmpty() && count == 0) {
-                                        "Hujjatlarni qayta ishlashda xatolik yuz berdi. Xatoliklarni tekshiring."
-                                    } else if (count == 0) {
-                                        "Oldindan ko'rish uchun hujjat yaratilmadi."
-                                    } else {
-                                        "Oldindan ko'rish uchun fayl tanlanmadi." // Fallback
-                                    }
-                                }
+                                } // end of if (currentResultMessage.isEmpty())
 
                             } catch (e: Exception) {
                                 currentResultMessage = "Umumiy xatolik: ${e.message}"; e.printStackTrace()
@@ -427,7 +488,7 @@ fun App() {
             // Vertical Divider
             Divider(modifier = Modifier.fillMaxHeight().width(1.dp).padding(vertical = 16.dp))
 
-            // Right Pane: Document Preview (Styled like white paper)
+            // Right Pane: Document Preview
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -440,20 +501,90 @@ fun App() {
                     style = MaterialTheme.typography.h6,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text("Style:")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = previewFontWeight == FontWeight.Bold,
+                            onCheckedChange = { checked ->
+                                previewFontWeight = if (checked) FontWeight.Bold else FontWeight.Normal
+                            }
+                        )
+                        Text("Bold", modifier = Modifier.padding(start = 4.dp, end = 8.dp))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = previewFontStyle == FontStyle.Italic,
+                            onCheckedChange = { checked ->
+                                previewFontStyle = if (checked) FontStyle.Italic else FontStyle.Normal
+                            }
+                        )
+                        Text("Italic", modifier = Modifier.padding(start = 4.dp, end = 8.dp))
+                    }
+                    Box {
+                        OutlinedButton(onClick = { fontMenuExpanded = true }) {
+                            Text(fontFamilyNames[fontFamilies.indexOf(previewFontFamily)])
+                        }
+                        DropdownMenu(
+                            expanded = fontMenuExpanded,
+                            onDismissRequest = { fontMenuExpanded = false }
+                        ) {
+                            fontFamilies.forEachIndexed { index, fontFamily ->
+                                DropdownMenuItem(onClick = {
+                                    previewFontFamily = fontFamily
+                                    fontMenuExpanded = false
+                                }) {
+                                    Text(fontFamilyNames[index])
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     color = Color.White,
                     elevation = 4.dp,
                     border = BorderStroke(1.dp, Color.LightGray)
                 ) {
                     Text(
-                        text = documentPreviewText, // Display plain String
+                        text = documentPreviewText,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp)
                             .verticalScroll(rememberScrollState()),
-                        color = MaterialTheme.colors.onSurface
+                        color = MaterialTheme.colors.onSurface,
+                        fontSize = previewFontSize,
+                        fontWeight = previewFontWeight,
+                        fontStyle = previewFontStyle,
+                        fontFamily = previewFontFamily
                     )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(onClick = {
+                        previewFontSize = (previewFontSize.value + 1).sp
+                    }) {
+                        Icon(Icons.Default.ZoomIn, "Zoom In")
+                        Text(" Zoom In", modifier = Modifier.padding(start = 4.dp))
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Button(onClick = {
+                        if (previewFontSize.value > 1) {
+                            previewFontSize = (previewFontSize.value - 1).sp
+                        }
+                    }) {
+                        Icon(Icons.Default.ZoomOut, "Zoom Out")
+                        Text(" Zoom Out", modifier = Modifier.padding(start = 4.dp))
+                    }
                 }
             }
         }
@@ -463,7 +594,7 @@ fun App() {
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Hujjat To'ldiruvchi v3.3 (Oddiy Matnli Ko'rish)", // Updated title
+        title = "Hujjat(AKT) To'ldiruvchi", // Updated title
         state = WindowState(placement = WindowPlacement.Maximized)
     ) {
         App()
