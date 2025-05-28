@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterialApi::class)
+@file:OptIn(ExperimentalMaterialApi::class, ExperimentalResourceApi::class)
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
@@ -19,10 +19,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toAwtImage
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowDecoration
+import androidx.compose.ui.window.WindowDecorationDefaults
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
@@ -33,6 +40,12 @@ import org.apache.poi.xwpf.usermodel.UnderlinePatterns
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.apache.poi.xwpf.usermodel.XWPFRun
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.decodeToImageBitmap
+import org.jetbrains.compose.resources.decodeToImageVector
+import org.jetbrains.compose.resources.decodeToSvgPainter
+import util.painterResourceC
 import java.awt.GraphicsEnvironment
 import java.io.File
 import java.io.FileInputStream
@@ -42,7 +55,7 @@ import java.util.prefs.Preferences
 import javax.swing.JFileChooser
 
 // --- Preference Keys and Node Path ---
-private const val PREFS_NODE_PATH = "com.example.hujjatoldiruvchi.prefs"
+private const val PREFS_NODE_PATH = "uz.mobiledv.hujjatoldiruvchi.prefs"
 private const val KEY_TEMPLATE_FOLDER = "templateFolderPath"
 private const val KEY_OUTPUT_FOLDER = "outputFolderPath"
 private const val KEY_OUTPUT_FILENAME = "outputFileName" // New key for output file name
@@ -508,20 +521,20 @@ fun App() {
                         OutlinedTextField(
                             formData.objectName,
                             { formData = formData.copy(objectName = it) },
-                            label = { Text("Nomi") },
+                            label = { Text("Nomi (наименование работ)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
                             formData.objectDesc,
                             { formData = formData.copy(objectDesc = it) },
-                            label = { Text("Tavsifi (объект)") },
+                            label = { Text("Tavsifi (наименование и место расположения объекта)") },
                             modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 80.dp),
                         )
                         OutlinedTextField(
                             formData.certification,
                             { formData = formData.copy(certification = it) },
-                            label = { Text("Yashirin ishlar nomi") },
+                            label = { Text("наименование скрытых работ") },
                             modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 80.dp),
                         )
                     }
@@ -534,14 +547,14 @@ fun App() {
                         OutlinedTextField(
                             formData.subContractor,
                             { formData = formData.copy(subContractor = it) },
-                            label = { Text("Subpudratchi (lavozimi)") },
+                            label = { Text("представителя субподрядчика (должность)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
                             formData.subContractorName,
                             { formData = formData.copy(subContractorName = it) },
-                            label = { Text("Subpudratchi (F.I.O)") },
+                            label = { Text("представителя субподрядчика (F.I.O)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -549,14 +562,14 @@ fun App() {
                         OutlinedTextField(
                             formData.contractor,
                             { formData = formData.copy(contractor = it) },
-                            label = { Text("Pudratchi (lavozimi)") },
+                            label = { Text("представителя подрядчика (должность)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
                             formData.contractorName,
                             { formData = formData.copy(contractorName = it) },
-                            label = { Text("Pudratchi (F.I.O)") },
+                            label = { Text("представителя подрядчика (F.I.O)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -564,14 +577,14 @@ fun App() {
                         OutlinedTextField(
                             formData.customer,
                             { formData = formData.copy(customer = it) },
-                            label = { Text("Buyurtmachi (lavozimi)") },
+                            label = { Text("Представитель Заказчика  (должность)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
                             formData.customerName,
                             { formData = formData.copy(customerName = it) },
-                            label = { Text("Buyurtmachi (F.I.O)") },
+                            label = { Text("Представитель Заказчика (F.I.O)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -579,14 +592,14 @@ fun App() {
                         OutlinedTextField(
                             formData.designOrg,
                             { formData = formData.copy(designOrg = it) },
-                            label = { Text("Loyiha tashkiloti (lavozimi)") },
+                            label = { Text("представителя проектной организации (должность)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
                             formData.designOrgName,
                             { formData = formData.copy(designOrgName = it) },
-                            label = { Text("Loyiha tashkiloti (F.I.O)") },
+                            label = { Text("представителя проектной организации (F.I.O)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -821,16 +834,18 @@ fun App() {
     }
 }
 
+
+
+
 fun main() = application {
 
-    val icon = painterResource("resources/icons/png_icon.png")
+//    val icon = painterResourceC("resources/icons/png_icon.png")
 
 
     Window(
         onCloseRequest = ::exitApplication,
         title = "Hujjat (AKT) To'ldiruvchi",
         state = WindowState(placement = WindowPlacement.Maximized),
-        icon = icon
     ) {
         App()
     }

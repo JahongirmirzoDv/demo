@@ -22,6 +22,7 @@ dependencies {
     // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
     implementation(compose.materialIconsExtended)
+    implementation(compose.components.resources)
 
     implementation("org.apache.poi:poi-ooxml:5.4.0") // Use the latest version
 
@@ -38,7 +39,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "demo"
+            packageName = "AKT"
             packageVersion = "1.0.0"
             description = "Hujjatlarni avtomatik to'ldirish dasturi"
             copyright = "© 2025 MobileDv"
