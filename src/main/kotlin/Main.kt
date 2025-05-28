@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds // Added for better viewport control
 import androidx.compose.ui.draw.scale // For the scale modifier
 import androidx.compose.ui.graphics.Color
-// Removed TransformOrigin and ScaleFactor imports as Modifier.scale defaults to Center
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
@@ -114,6 +113,7 @@ fun XWPFRun.extractStyle(): StyleProperties {
     val sizeFromPOI: Double? = try {
         this.fontSizeAsDouble
     } catch (e: Exception) {
+        e.printStackTrace()
         null
     }
     val finalFontSize: Double? = if (sizeFromPOI != null && sizeFromPOI > 0) sizeFromPOI else null
@@ -149,7 +149,7 @@ fun fillTemplate(
 ) {
     FileInputStream(inputPath).use { fis ->
         val doc = XWPFDocument(fis)
-        val placeholderRegex = Regex("\\{([^}]+)\\}")
+        val placeholderRegex = Regex("\\{([^}]+)}")
 
         doc.paragraphs.forEach { paragraph ->
             processParagraphRuns(paragraph, data, placeholderRegex, globalIsBold, globalIsItalic, globalFontFamily)
@@ -173,6 +173,7 @@ fun fillTemplate(
             try {
                 doc.close()
             } catch (e: IOException) { /* Log */
+                e.printStackTrace()
             }
         }
     }
@@ -286,15 +287,15 @@ private fun processParagraphRuns(
 
 // --- TemplateKeys (remains the same) ---
 object TemplateKeys {
-    const val OBJECT_NAME = "object_name";
+    const val OBJECT_NAME = "object_name"
     const val OBJECT_DESC = "object_desc"
-    const val SUB_CONTRACTOR = "sub_contractor";
+    const val SUB_CONTRACTOR = "sub_contractor"
     const val SUB_CONTRACTOR_NAME = "sub_contractor_name"
-    const val CONTRACTOR = "contractor";
+    const val CONTRACTOR = "contractor"
     const val CONTRACTOR_NAME = "contractor_name"
-    const val DESIGN_ORG = "design_org";
+    const val DESIGN_ORG = "design_org"
     const val DESIGN_ORG_NAME = "design_org_name"
-    const val CUSTOMER = "customer";
+    const val CUSTOMER = "customer"
     const val CUSTOMER_NAME = "customer_name"
     const val CERTIFICATION = "certification"
 }
@@ -557,10 +558,10 @@ fun App() {
                                 TemplateKeys.DESIGN_ORG_NAME to formData.designOrgName,
                                 TemplateKeys.CERTIFICATION to formData.certification
                             )
-                            var currentMsg = "";
+                            var currentMsg = ""
                             var firstSuccessPath: String? = null
                             try {
-                                val tDir = File(templateFolderPath);
+                                val tDir = File(templateFolderPath)
                                 val oDir = File(outputFolderPath)
                                 if (!tDir.exists() || !tDir.isDirectory) currentMsg =
                                     "Xatolik: Manba papkasi topilmadi."
@@ -568,8 +569,8 @@ fun App() {
                                 else if (!oDir.isDirectory) currentMsg = "Xatolik: Chiqish joyi papka emas."
 
                                 if (currentMsg.isEmpty()) {
-                                    var count = 0;
-                                    val processed = mutableListOf<String>();
+                                    var count = 0
+                                    val processed = mutableListOf<String>()
                                     val errors = mutableListOf<String>()
                                     tDir.listFiles()?.filter { it.isFile && it.extension.equals("docx", true) }
                                         ?.forEach { file ->
@@ -619,7 +620,6 @@ fun App() {
             }
             Divider(Modifier.fillMaxHeight().width(1.dp).padding(vertical = 16.dp))
 
-            // Right Pane - Preview Area (contents remain the same as previous version v3.10)
             Column(
                 Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colors.onSurface.copy(alpha = 0.05f))
                     .padding(16.dp),
