@@ -1,6 +1,6 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.BorderStroke // Import for BorderStroke
-import androidx.compose.foundation.background // Import for background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +12,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+// Removed AnnotatedString specific imports as we are reverting to plain text preview
+// import androidx.compose.ui.text.AnnotatedString
+// import androidx.compose.ui.text.SpanStyle
+// import androidx.compose.ui.text.buildAnnotatedString
+// import androidx.compose.ui.text.font.FontStyle
+// import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.AwtWindow
 import androidx.compose.ui.window.Window
@@ -20,20 +26,20 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor // Re-added for plain text extraction
 import org.apache.poi.xwpf.usermodel.UnderlinePatterns
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.apache.poi.xwpf.usermodel.XWPFRun
-import java.awt.FileDialog // For AWT File Dialog
-import java.awt.Frame // For AWT File Dialog
+import java.awt.FileDialog
+import java.awt.Frame
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
-import javax.swing.JFileChooser // For JFileChooser
+import javax.swing.JFileChooser
 
-// --- StyleProperties Data Class and XWPFRun Extensions (Keep these as they were) ---
+// --- StyleProperties Data Class and XWPFRun Extensions (Still needed for fillTemplate) ---
 data class StyleProperties(
     val isBold: Boolean = false, val isItalic: Boolean = false,
     val underline: UnderlinePatterns = UnderlinePatterns.NONE,
@@ -143,19 +149,20 @@ object TemplateKeys {
     const val CERTIFICATION = "certification"
 }
 
-// --- Function to extract text for preview (Keep this) ---
+// --- REVERTED Function to extract PLAIN text for preview ---
 fun extractTextFromDocx(filePath: String): String {
     return try {
         FileInputStream(filePath).use { fis ->
             XWPFDocument(fis).use { document ->
                 XWPFWordExtractor(document).use { extractor ->
-                    extractor.text ?: "Matn topilmadi."
+                    extractor.text ?: "Matn topilmadi (null qaytardi)." // Text from extractor can be null
                 }
             }
         }
     } catch (e: Exception) {
-        println("Oldindan ko'rish uchun xatolik ($filePath): ${e.message}")
-        "Hujjat matnini oldindan ko'rishda xatolik: ${e.message}"
+        println("Oldindan ko'rish uchun matn chiqarishda xatolik ($filePath): ${e.message}")
+        e.printStackTrace() // For more detailed debugging
+        "Hujjat matnini oldindan ko'rishda xatolik yuz berdi: ${e.message}"
     }
 }
 
@@ -199,6 +206,7 @@ fun App() {
 
     var templateFolderPath by remember { mutableStateOf("") }
     var outputFolderPath by remember { mutableStateOf("") }
+    // Reverted to String for plain text preview
     var documentPreviewText by remember { mutableStateOf("Hujjat oldindan ko'rish uchun shu yerda paydo bo'ladi.\n\nAvval manba va chiqish papkalarini tanlang, so'ng ma'lumotlarni to'ldirib, \"Hujjatlarni To'ldirish\" tugmasini bosing.") }
     var lastProcessedFileName by remember { mutableStateOf<String?>(null) }
 
@@ -369,16 +377,18 @@ fun App() {
                                     else "Manba papkasida DOCX fayllar topilmadi."
                                 if (errorFiles.isNotEmpty()) currentResultMessage += "\nXatoliklar: ${errorFiles.joinToString()}"
 
+                                // Update preview with plain text
                                 firstSuccessPath?.let {
                                     documentPreviewText = extractTextFromDocx(it)
                                 } ?: run {
-                                    if (count == 0 && errorFiles.isEmpty()) {
-                                        documentPreviewText = "Manba papkasida DOCX fayllar topilmadi."
+                                    documentPreviewText = if (count == 0 && errorFiles.isEmpty()) {
+                                        "Manba papkasida DOCX fayllar topilmadi."
                                     } else if (errorFiles.isNotEmpty() && count == 0) {
-                                        documentPreviewText =
-                                            "Hujjatlarni qayta ishlashda xatolik yuz berdi. Xatoliklarni tekshiring."
+                                        "Hujjatlarni qayta ishlashda xatolik yuz berdi. Xatoliklarni tekshiring."
                                     } else if (count == 0) {
-                                        documentPreviewText = "Oldindan ko'rish uchun hujjat yaratilmadi."
+                                        "Oldindan ko'rish uchun hujjat yaratilmadi."
+                                    } else {
+                                        "Oldindan ko'rish uchun fayl tanlanmadi." // Fallback
                                     }
                                 }
 
@@ -417,33 +427,32 @@ fun App() {
             // Vertical Divider
             Divider(modifier = Modifier.fillMaxHeight().width(1.dp).padding(vertical = 16.dp))
 
-            // Right Pane: Document Preview
+            // Right Pane: Document Preview (Styled like white paper)
             Column(
                 modifier = Modifier
-                    .weight(1f) // Takes half the width
+                    .weight(1f)
                     .fillMaxHeight()
-                    .background(MaterialTheme.colors.onSurface.copy(alpha = 0.05f)) // Light background for the area behind the "paper"
-                    .padding(16.dp) // Padding around the entire right pane
+                    .background(MaterialTheme.colors.onSurface.copy(alpha = 0.05f))
+                    .padding(16.dp)
             ) {
                 Text(
                     text = lastProcessedFileName?.let { "Oldindan ko'rish: $it" } ?: "Hujjat Oldindan Ko'rish",
                     style = MaterialTheme.typography.h6,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                Surface( // Use Surface for elevation and standard background color handling
+                Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color.White, // White paper background
-                    elevation = 4.dp, // Adds a subtle shadow to lift the "paper"
-                    border = BorderStroke(1.dp, Color.LightGray) // Light border for the paper itself
+                    color = Color.White,
+                    elevation = 4.dp,
+                    border = BorderStroke(1.dp, Color.LightGray)
                 ) {
                     Text(
-                        text = documentPreviewText,
+                        text = documentPreviewText, // Display plain String
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(16.dp) // Inner padding for the text on the "paper"
+                            .padding(16.dp)
                             .verticalScroll(rememberScrollState()),
-                        color = MaterialTheme.colors.onSurface // Good contrast with white background
-                        // For explicitly black text, use Color.Black
+                        color = MaterialTheme.colors.onSurface
                     )
                 }
             }
@@ -454,8 +463,8 @@ fun App() {
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Hujjat To'ldiruvchi v3.1 (Oq Qog'oz Ko'rinishi)", // Updated title
-        state = WindowState(placement = WindowPlacement.Maximized) // Open maximized
+        title = "Hujjat To'ldiruvchi v3.3 (Oddiy Matnli Ko'rish)", // Updated title
+        state = WindowState(placement = WindowPlacement.Maximized)
     ) {
         App()
     }
