@@ -1,16 +1,12 @@
 @file:OptIn(ExperimentalMaterialApi::class, ExperimentalResourceApi::class)
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Save // Icon for output file name
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.runtime.*
@@ -19,19 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.toAwtImage
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowDecoration
-import androidx.compose.ui.window.WindowDecorationDefaults
-import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.WindowPlacement
+import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,12 +28,7 @@ import org.apache.poi.xwpf.usermodel.UnderlinePatterns
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.apache.poi.xwpf.usermodel.XWPFRun
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.jetbrains.compose.resources.decodeToImageBitmap
-import org.jetbrains.compose.resources.decodeToImageVector
-import org.jetbrains.compose.resources.decodeToSvgPainter
-import util.painterResourceC
 import java.awt.GraphicsEnvironment
 import java.io.File
 import java.io.FileInputStream
@@ -353,7 +336,7 @@ fun FolderPickerButton(buttonText: String, selectedPath: String, onPathSelected:
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Icon(Icons.Default.FolderOpen, "Folder", Modifier.padding(end = 8.dp))
-        Text(if (selectedPath.isNotEmpty()) selectedPath else "$buttonText: Tanlanmagan", maxLines = 1)
+        Text(selectedPath.ifEmpty { "$buttonText: Tanlanmagan" }, maxLines = 1)
     }
     if (isDialogVisible) {
         DisposableEffect(Unit) {
@@ -661,7 +644,7 @@ fun App() {
                                             }
                                             outputDirWithSubfolders.mkdirs()
 
-                                            // Use custom output file name if provided, else use original name with "filled_" prefix
+                                            // Use a custom output file name if provided, else use original name with "filled_" prefix
                                             val finalOutputName = if (outputFileName.isNotBlank()) {
                                                 // Ensure it has .docx extension
                                                 if (outputFileName.endsWith(
@@ -670,7 +653,7 @@ fun App() {
                                                     )
                                                 ) outputFileName else "$outputFileName.docx"
                                             } else {
-                                                entry.name // Use original name if outputFileName is blank
+                                                entry.name // Use the original name if outputFileName is blank
                                             }
                                             val finalOutputFile = File(outputDirWithSubfolders, finalOutputName)
 
@@ -734,7 +717,7 @@ fun App() {
                                 lastProcessedFileNameForPreview = tempLastProcessedFileNameForPreview
 
                                 documentPreviewText = if (firstSuccessPathForPreview != null) {
-                                    extractTextFromDocx(firstSuccessPathForPreview!!)
+                                    extractTextFromDocx(firstSuccessPathForPreview)
                                 } else {
                                     if (filesProcessedCount == 0 && errorFileMessagesList.isEmpty()) {
                                         "Manba papkasida DOCX fayllar topilmadi."
@@ -833,8 +816,6 @@ fun App() {
         }
     }
 }
-
-
 
 
 fun main() = application {

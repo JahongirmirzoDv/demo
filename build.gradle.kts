@@ -31,6 +31,8 @@ dependencies {
     implementation("org.apache.logging.log4j:log4j-core:2.17.1") // Or newer
     implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.17.1") // If you use SLF4J
 
+    implementation(project.dependencies.platform("io.github.jan-tennert.supabase:bom:3.1.4"))
+    implementation("io.github.jan-tennert.supabase:auth-kt")
 }
 
 compose.desktop {
