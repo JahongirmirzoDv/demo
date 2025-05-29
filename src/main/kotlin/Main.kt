@@ -21,6 +21,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import di.initKoin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor
@@ -822,6 +823,7 @@ fun main() = application {
 
 //    val icon = painterResourceC("resources/icons/png_icon.png")
 
+    initKoin()
 
     Window(
         onCloseRequest = ::exitApplication,

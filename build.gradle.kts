@@ -33,6 +33,10 @@ dependencies {
 
     implementation(project.dependencies.platform("io.github.jan-tennert.supabase:bom:3.1.4"))
     implementation("io.github.jan-tennert.supabase:auth-kt")
+
+    implementation("io.insert-koin:koin-core:3.5.6") // Check for the latest version
+    implementation("io.insert-koin:koin-test:3.5.6") // Optional: for testing
+    implementation("io.insert-koin:koin-logger-slf4j:3.5.6") // Optional: for logging
 }
 
 compose.desktop {
