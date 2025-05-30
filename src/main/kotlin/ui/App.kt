@@ -253,13 +253,6 @@ fun App(viewModel: MainViewModel = koinInject()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("Asosiy Ma'lumotlar", style = MaterialTheme.typography.h6)
                         OutlinedTextField(
-                            formData.objectName,
-                            { formData = formData.copy(objectName = it) },
-                            label = { Text("Nomi (наименование работ)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
                             formData.objectDesc,
                             { formData = formData.copy(objectDesc = it) },
                             label = { Text("Tavsifi (наименование и место расположения объекта)") },
@@ -271,6 +264,48 @@ fun App(viewModel: MainViewModel = koinInject()) {
                             label = { Text("наименование скрытых работ") },
                             modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 80.dp),
                         )
+                    }
+                }
+
+                // --- Card for 8 Instances ---
+                Card(elevation = 4.dp, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            "${formData.instances.size} Nusxa Uchun Maxsus Ma'lumotlar",
+                            style = MaterialTheme.typography.h6
+                        )
+                        formData.instances.forEachIndexed { index, instanceData ->
+                            Text(
+                                "Nusxa ${index + 1}",
+                                style = MaterialTheme.typography.subtitle1,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                            OutlinedTextField(
+                                value = instanceData.instanceObjectName,
+                                onValueChange = { newValue ->
+                                    val updatedInstances = formData.instances.toMutableList()
+                                    updatedInstances[index] = instanceData.copy(instanceObjectName = newValue)
+                                    formData = formData.copy(instances = updatedInstances)
+                                },
+                                label = { Text("Nomi (наименование работ) - Nusxa ${index + 1}") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = instanceData.instanceSrNum,
+                                onValueChange = { newValue ->
+                                    val updatedInstances = formData.instances.toMutableList()
+                                    updatedInstances[index] = instanceData.copy(instanceSrNum = newValue)
+                                    formData = formData.copy(instances = updatedInstances)
+                                },
+                                label = { Text("Proyekt Raqami (номер проекта) - Nusxa ${index + 1}") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            if (index < formData.instances.size - 1) {
+                                Divider(Modifier.padding(vertical = 6.dp))
+                            }
+                        }
                     }
                 }
 
@@ -345,10 +380,38 @@ fun App(viewModel: MainViewModel = koinInject()) {
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
+                    }
+                }
+
+                Card(elevation = 4.dp, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("комиссии", style = MaterialTheme.typography.h6)
                         OutlinedTextField(
-                            formData.srNum,
-                            { formData = formData.copy(srNum = it) },
-                            label = { Text("номер проекта") },
+                            formData.subContractorCo,
+                            { formData = formData.copy(subContractorCo = it) },
+                            label = { Text("субподрядная компания") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            formData.contractorCo,
+                            { formData = formData.copy(contractorCo = it) },
+                            label = { Text("подрядная компания") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Divider(Modifier.padding(vertical = 6.dp))
+                        OutlinedTextField(
+                            formData.designCo,
+                            { formData = formData.copy(designCo = it) },
+                            label = { Text("Представитель проектной организации") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            formData.customerCo,
+                            { formData = formData.copy(customerCo = it) },
+                            label = { Text("компания-клиент") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
