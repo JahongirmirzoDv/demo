@@ -1,5 +1,3 @@
-package ui
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,8 +35,6 @@ import androidx.compose.ui.unit.dp
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.koin.compose.viewmodel.koinViewModel
-import viewmodel.LoginResult
-import viewmodel.LoginViewModel
 
 private val logger: Logger = LogManager.getLogger("LoginScreen")
 

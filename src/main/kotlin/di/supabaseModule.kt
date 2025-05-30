@@ -9,7 +9,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.koin.dsl.module
 import util.ConfigLoader
-import viewmodel.LoginViewModel
+import LoginViewModel
 
 private val logger: Logger = LogManager.getLogger("SupabaseModule")
 

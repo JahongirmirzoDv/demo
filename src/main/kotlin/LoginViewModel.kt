@@ -1,5 +1,3 @@
-package viewmodel
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.jan.supabase.SupabaseClient
@@ -34,7 +32,7 @@ class LoginViewModel(
     fun login(email: String, password: String) {
         _loginState.value = LoginResult.Loading
         viewModelScope.launch(Dispatchers.IO) {
-            kotlin.runCatching {
+            runCatching {
                 supabaseClient.auth.signInWith(Email) {
                     this.email = email
                     this.password = password
