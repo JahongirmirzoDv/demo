@@ -126,14 +126,14 @@ fun App(viewModel: MainViewModel = koinInject()) {
     val documentPreviewText by viewModel.documentPreviewText.collectAsState()
     val lastProcessedFileName by viewModel.lastProcessedFileName.collectAsState()
 
-    var previewScale by remember { mutableStateOf(1f) }
+    var previewScale by remember { mutableStateOf(1.2f) }
     val minScale = 0.3f
     val maxScale = 3.0f
     val scaleIncrement = 0.1f
     val a4AspectRatio = 1.414f
     val previewBaseWidth = 350.dp
     val previewBaseHeight = previewBaseWidth * a4AspectRatio
-    val previewTextBaseFontSize = 10.sp
+    val previewTextBaseFontSize = 8.sp
 
     MaterialTheme {
         Row(modifier = Modifier.fillMaxSize()) {
@@ -417,11 +417,11 @@ fun App(viewModel: MainViewModel = koinInject()) {
                     .background(MaterialTheme.colors.surface.copy(alpha = 0.5f))
                     .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    lastProcessedFileName?.let { "Oldindan ko'rish: $it" } ?: "Hujjat Oldindan Ko'rish",
-                    style = MaterialTheme.typography.h6,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+//                Text(
+//                    lastProcessedFileName?.let { "Oldindan ko'rish: $it" } ?: "Hujjat Oldindan Ko'rish",
+//                    style = MaterialTheme.typography.h6,
+//                    modifier = Modifier.padding(bottom = 12.dp)
+//                )
                 Box(
                     modifier = Modifier.weight(1f)
                         .fillMaxWidth()
