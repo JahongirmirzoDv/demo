@@ -158,15 +158,15 @@ fun App(viewModel: MainViewModel = koinInject()) {
                         FolderPickerButton("Chiqish papkasi", outputFolderPath) {
                             outputFolderPath = it; saveStringPreference(KEY_OUTPUT_FOLDER, it)
                         }
-                        OutlinedTextField(
-                            value = outputFileName,
-                            onValueChange = { outputFileName = it; saveStringPreference(KEY_OUTPUT_FILENAME, it) },
-                            label = { Text("Chiqish fayl nomi (bo'sh qoldirilsa asl nomi)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            leadingIcon = { Icon(Icons.Default.Save, "File Name") },
-                            singleLine = true,
-                            placeholder = { Text("Masalan: Yakuniy_akt.docx") }
-                        )
+//                        OutlinedTextField(
+//                            value = outputFileName,
+//                            onValueChange = { outputFileName = it; saveStringPreference(KEY_OUTPUT_FILENAME, it) },
+//                            label = { Text("Chiqish fayl nomi (bo'sh qoldirilsa asl nomi)") },
+//                            modifier = Modifier.fillMaxWidth(),
+//                            leadingIcon = { Icon(Icons.Default.Save, "File Name") },
+//                            singleLine = true,
+//                            placeholder = { Text("Masalan: Yakuniy_akt.docx") }
+//                        )
                     }
                 }
 
